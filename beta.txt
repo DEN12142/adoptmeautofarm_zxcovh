@@ -1,4 +1,4 @@
--- GhostClusters AutoFarm v1.7.4 (полёт + aim + авто-ЛКМ, мульти-метод)
+-- GhostClusters AutoFarm v1.7.6 (полёт + aim + авто-ЛКМ, мульти-метод)
 local okMain, errMain = pcall(function()
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
@@ -282,7 +282,7 @@ local okMain, errMain = pcall(function()
     VersionLabel.Size = UDim2.new(0, 60, 1, 0)
     VersionLabel.Position = UDim2.new(1, -70, 0, 0)
     VersionLabel.BackgroundTransparency = 1
-    VersionLabel.Text = "v1.7.4"
+    VersionLabel.Text = "v1.7.6"
     VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     VersionLabel.TextTransparency = 0.35
     VersionLabel.TextSize = 10
@@ -546,6 +546,7 @@ local okMain, errMain = pcall(function()
     LmbLabel.Parent = MainFrame
 
     local caughtCount = savedCaught
+    local caughtGame = 0
 
     local function save_settings()
         pcall(function()
@@ -559,11 +560,18 @@ local okMain, errMain = pcall(function()
         end)
     end
 
+    local function update_caught_label()
+        CaughtLabel.Text = "За игру: " .. caughtGame .. " | Всего: " .. caughtCount
+    end
+
     local function add_caught()
         caughtCount = caughtCount + 1
-        CaughtLabel.Text = "Caught: " .. caughtCount
+        caughtGame = caughtGame + 1
+        update_caught_label()
         save_settings()
     end
+
+    update_caught_label()
 
     -- Применяем сохранённые настройки к GUI
     do
@@ -779,6 +787,7 @@ local okMain, errMain = pcall(function()
         local damageCheckProgress = 0
         local damageCheckTargetId = nil
         local damageWarnUntil = 0
+        local gameActive = false
 
         while running and myLoopId == activeLoopId and _G.GCF_TOKEN == myToken do
             local waited = task.wait(0.03)
@@ -791,6 +800,17 @@ local okMain, errMain = pcall(function()
             local okIter, errIter = pcall(function()
                 local ghosts = get_alive_ghosts()
                 GhostsLabel.Text = "Ghosts: " .. #ghosts
+
+                -- Новая игра (призраки появились после пустоты) — сброс счётчика за игру
+                if #ghosts > 0 then
+                    if not gameActive then
+                        gameActive = true
+                        caughtGame = 0
+                        update_caught_label()
+                    end
+                else
+                    gameActive = false
+                end
 
                 -- Слежение: призрак, которого мы всасывали, исчез => пойман
                 if watchedId then
@@ -845,14 +865,14 @@ local okMain, errMain = pcall(function()
                         lastProgressTime = os.clock()
                     end
 
-                    -- Проверка урона каждые 10 секунд
+                    -- Проверка урона каждые 3 секунды
                     local now = os.clock()
-                    if now - damageCheckTime >= 10 then
+                    if now - damageCheckTime >= 3 then
                         damageCheckTime = now
                         if damageCheckTargetId == target.id and progress <= damageCheckProgress then
-                            damageWarnUntil = now + 3
+                            damageWarnUntil = now + 2
                             update_status("Нет урона! Перенажимаю ЛКМ", Color3.fromRGB(255, 140, 60))
-                            warn("[GhostFarm] Урон не идёт 10 сек (progress=" .. tostring(progress) .. ") — перенажатие ЛКМ")
+                            warn("[GhostFarm] Урон не идёт 3 сек (progress=" .. tostring(progress) .. ") — перенажатие ЛКМ")
                             repress_lmb()
                         else
                             damageCheckTargetId = target.id
@@ -1030,7 +1050,7 @@ local okMain, errMain = pcall(function()
         end
     end))
 
-    print("[Farm] v1.7.4 GUI загружен! F4 - Start/Stop")
+    print("[Farm] v1.7.6 GUI загружен! F4 - Start/Stop")
     if mousePressFn then
         print("[Farm] LMB метод: mouse-press (" .. tostring(pressName) .. ")")
     else
