@@ -1,4 +1,4 @@
--- GhostClusters AutoFarm v1.7.2 (полёт + aim + авто-ЛКМ, мульти-метод)
+-- GhostClusters AutoFarm v1.7.4 (полёт + aim + авто-ЛКМ, мульти-метод)
 local okMain, errMain = pcall(function()
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
@@ -43,6 +43,36 @@ local okMain, errMain = pcall(function()
     local flySpeed = 50
     local currentTargetIndex = 1
     local activeLoopId = 0
+
+    -- ============================================
+    -- СОХРАНЕНИЕ НАСТРОЕК
+    -- ============================================
+
+    local SETTINGS_PATH = "GhostClustersFarm/settings.json"
+    local savedCaught = 0
+
+    local function load_settings()
+        local ok, res = pcall(function()
+            if isfile and isfile(SETTINGS_PATH) then
+                local HttpService = game:GetService("HttpService")
+                return HttpService:JSONDecode(readfile(SETTINGS_PATH))
+            end
+            return nil
+        end)
+        if ok and type(res) == "table" then
+            if type(res.flySpeed) == "number" then
+                flySpeed = math.clamp(math.floor(res.flySpeed), 20, 150)
+            end
+            if type(res.autoTarget) == "boolean" then
+                autoTarget = res.autoTarget
+            end
+            if type(res.caught) == "number" then
+                savedCaught = math.floor(res.caught)
+            end
+        end
+    end
+
+    load_settings()
 
     -- ============================================
     -- ПОИСК ПРИЗРАКОВ
@@ -161,60 +191,118 @@ local okMain, errMain = pcall(function()
     ScreenGui.DisplayOrder = 999999
     ScreenGui.Parent = Player.PlayerGui
 
+    -- Палитра
+    local THEME = {
+        bg = Color3.fromRGB(13, 14, 22),
+        card = Color3.fromRGB(24, 26, 38),
+        cardStroke = Color3.fromRGB(52, 55, 78),
+        accent = Color3.fromRGB(124, 92, 255),
+        accent2 = Color3.fromRGB(72, 200, 255),
+        gold = Color3.fromRGB(255, 210, 90),
+        text = Color3.fromRGB(235, 236, 245),
+        muted = Color3.fromRGB(146, 150, 172),
+    }
+
+    local function mkcard(frame, radius)
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, radius or 8)
+        c.Parent = frame
+        local s = Instance.new("UIStroke")
+        s.Color = THEME.cardStroke
+        s.Thickness = 1
+        s.Parent = frame
+    end
+
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 280, 0, 420)
+    MainFrame.Size = UDim2.new(0, 300, 0, 426)
     MainFrame.Position = UDim2.new(0, 10, 0.3, 0)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    MainFrame.BackgroundColor3 = THEME.bg
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.Draggable = true
     MainFrame.Parent = ScreenGui
 
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(100, 60, 180)
-    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(74, 66, 130)
+    stroke.Thickness = 1.5
     stroke.Parent = MainFrame
 
     -- Заголовок
     local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 35)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+    TitleBar.Size = UDim2.new(1, 0, 0, 42)
+    TitleBar.BackgroundColor3 = THEME.accent
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = MainFrame
 
-    Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+
+    local titleGrad = Instance.new("UIGradient")
+    titleGrad.Color = ColorSequence.new(
+        Color3.fromRGB(124, 92, 255),
+        Color3.fromRGB(70, 140, 255)
+    )
+    titleGrad.Rotation = 0
+    titleGrad.Parent = TitleBar
 
     local TitleFix = Instance.new("Frame")
-    TitleFix.Size = UDim2.new(1, 0, 0, 10)
-    TitleFix.Position = UDim2.new(0, 0, 1, -10)
-    TitleFix.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+    TitleFix.Size = UDim2.new(1, 0, 0, 14)
+    TitleFix.Position = UDim2.new(0, 0, 1, -14)
+    TitleFix.BackgroundColor3 = THEME.accent
     TitleFix.BorderSizePixel = 0
     TitleFix.Parent = TitleBar
 
+    local titleGradFix = Instance.new("UIGradient")
+    titleGradFix.Color = titleGrad.Color
+    titleGradFix.Rotation = 0
+    titleGradFix.Parent = TitleFix
+
+    local TitleDot = Instance.new("Frame")
+    TitleDot.Size = UDim2.new(0, 10, 0, 10)
+    TitleDot.Position = UDim2.new(0, 14, 0.5, -5)
+    TitleDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    TitleDot.BorderSizePixel = 0
+    TitleDot.Parent = TitleBar
+
+    Instance.new("UICorner", TitleDot).CornerRadius = UDim.new(1, 0)
+
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+    TitleLabel.Size = UDim2.new(1, -100, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 34, 0, 0)
     TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = "Ghost Clusters Farm"
+    TitleLabel.Text = "GHOST CLUSTERS"
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.TextSize = 14
+    TitleLabel.TextSize = 13
     TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = TitleBar
+
+    local VersionLabel = Instance.new("TextLabel")
+    VersionLabel.Size = UDim2.new(0, 60, 1, 0)
+    VersionLabel.Position = UDim2.new(1, -70, 0, 0)
+    VersionLabel.BackgroundTransparency = 1
+    VersionLabel.Text = "v1.7.4"
+    VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    VersionLabel.TextTransparency = 0.35
+    VersionLabel.TextSize = 10
+    VersionLabel.Font = Enum.Font.Gotham
+    VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
+    VersionLabel.Parent = TitleBar
 
     -- Статус
     local StatusBar = Instance.new("Frame")
     StatusBar.Size = UDim2.new(1, -20, 0, 28)
-    StatusBar.Position = UDim2.new(0, 10, 0, 42)
-    StatusBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    StatusBar.Position = UDim2.new(0, 10, 0, 50)
+    StatusBar.BackgroundColor3 = THEME.card
     StatusBar.BorderSizePixel = 0
     StatusBar.Parent = MainFrame
 
-    Instance.new("UICorner", StatusBar).CornerRadius = UDim.new(0, 6)
+    mkcard(StatusBar, 8)
 
     local StatusDot = Instance.new("Frame")
     StatusDot.Size = UDim2.new(0, 10, 0, 10)
-    StatusDot.Position = UDim2.new(0, 10, 0.5, -5)
+    StatusDot.Position = UDim2.new(0, 12, 0.5, -5)
     StatusDot.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     StatusDot.BorderSizePixel = 0
     StatusDot.Parent = StatusBar
@@ -223,86 +311,98 @@ local okMain, errMain = pcall(function()
 
     local StatusLabel = Instance.new("TextLabel")
     StatusLabel.Size = UDim2.new(1, -40, 1, 0)
-    StatusLabel.Position = UDim2.new(0, 30, 0, 0)
+    StatusLabel.Position = UDim2.new(0, 32, 0, 0)
     StatusLabel.BackgroundTransparency = 1
     StatusLabel.Text = "Stopped"
-    StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    StatusLabel.TextColor3 = THEME.muted
     StatusLabel.TextSize = 12
-    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Font = Enum.Font.GothamMedium
     StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
     StatusLabel.Parent = StatusBar
 
     -- Кнопка Start/Stop
     local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Size = UDim2.new(1, -20, 0, 40)
-    ToggleButton.Position = UDim2.new(0, 10, 0, 80)
+    ToggleButton.Size = UDim2.new(1, -20, 0, 44)
+    ToggleButton.Position = UDim2.new(0, 10, 0, 86)
     ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
     ToggleButton.BorderSizePixel = 0
     ToggleButton.Text = "START FARM"
     ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.TextSize = 14
+    ToggleButton.TextSize = 15
     ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.AutoButtonColor = true
     ToggleButton.Parent = MainFrame
 
-    Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 10)
+
+    local toggleGrad = Instance.new("UIGradient")
+    toggleGrad.Color = ColorSequence.new(
+        Color3.fromRGB(255, 255, 255),
+        Color3.fromRGB(210, 210, 230)
+    )
+    toggleGrad.Rotation = 90
+    toggleGrad.Parent = ToggleButton
 
     -- Автовыбор
     local AutoButton = Instance.new("TextButton")
-    AutoButton.Size = UDim2.new(1, -20, 0, 32)
-    AutoButton.Position = UDim2.new(0, 10, 0, 130)
-    AutoButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    AutoButton.Size = UDim2.new(1, -20, 0, 30)
+    AutoButton.Position = UDim2.new(0, 10, 0, 138)
+    AutoButton.BackgroundColor3 = THEME.card
     AutoButton.BorderSizePixel = 0
     AutoButton.Text = "Auto Target: ON"
     AutoButton.TextColor3 = Color3.fromRGB(100, 255, 100)
     AutoButton.TextSize = 12
-    AutoButton.Font = Enum.Font.Gotham
+    AutoButton.Font = Enum.Font.GothamMedium
+    AutoButton.AutoButtonColor = true
     AutoButton.Parent = MainFrame
 
-    Instance.new("UICorner", AutoButton).CornerRadius = UDim.new(0, 6)
+    mkcard(AutoButton, 8)
 
     -- Prev / Next
     local PrevButton = Instance.new("TextButton")
-    PrevButton.Size = UDim2.new(0.45, 0, 0, 32)
-    PrevButton.Position = UDim2.new(0, 10, 0, 170)
-    PrevButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    PrevButton.Size = UDim2.new(0, 136, 0, 30)
+    PrevButton.Position = UDim2.new(0, 10, 0, 174)
+    PrevButton.BackgroundColor3 = THEME.card
     PrevButton.BorderSizePixel = 0
-    PrevButton.Text = "Prev"
-    PrevButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PrevButton.Text = "‹  Prev"
+    PrevButton.TextColor3 = THEME.text
     PrevButton.TextSize = 12
-    PrevButton.Font = Enum.Font.Gotham
+    PrevButton.Font = Enum.Font.GothamMedium
+    PrevButton.AutoButtonColor = true
     PrevButton.Parent = MainFrame
 
-    Instance.new("UICorner", PrevButton).CornerRadius = UDim.new(0, 6)
+    mkcard(PrevButton, 8)
 
     local NextButton = Instance.new("TextButton")
-    NextButton.Size = UDim2.new(0.45, 0, 0, 32)
-    NextButton.Position = UDim2.new(0.55, 0, 0, 170)
-    NextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    NextButton.Size = UDim2.new(0, 136, 0, 30)
+    NextButton.Position = UDim2.new(0, 154, 0, 174)
+    NextButton.BackgroundColor3 = THEME.card
     NextButton.BorderSizePixel = 0
-    NextButton.Text = "Next"
-    NextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NextButton.Text = "Next  ›"
+    NextButton.TextColor3 = THEME.text
     NextButton.TextSize = 12
-    NextButton.Font = Enum.Font.Gotham
+    NextButton.Font = Enum.Font.GothamMedium
+    NextButton.AutoButtonColor = true
     NextButton.Parent = MainFrame
 
-    Instance.new("UICorner", NextButton).CornerRadius = UDim.new(0, 6)
+    mkcard(NextButton, 8)
 
     -- Инфо
     local TargetInfo = Instance.new("Frame")
-    TargetInfo.Size = UDim2.new(1, -20, 0, 36)
+    TargetInfo.Size = UDim2.new(1, -20, 0, 38)
     TargetInfo.Position = UDim2.new(0, 10, 0, 212)
-    TargetInfo.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    TargetInfo.BackgroundColor3 = THEME.card
     TargetInfo.BorderSizePixel = 0
     TargetInfo.Parent = MainFrame
 
-    Instance.new("UICorner", TargetInfo).CornerRadius = UDim.new(0, 6)
+    mkcard(TargetInfo, 8)
 
     local TargetInfoLabel = Instance.new("TextLabel")
-    TargetInfoLabel.Size = UDim2.new(1, -10, 1, 0)
-    TargetInfoLabel.Position = UDim2.new(0, 10, 0, 0)
+    TargetInfoLabel.Size = UDim2.new(1, -24, 1, 0)
+    TargetInfoLabel.Position = UDim2.new(0, 12, 0, 0)
     TargetInfoLabel.BackgroundTransparency = 1
     TargetInfoLabel.Text = "Target: None"
-    TargetInfoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TargetInfoLabel.TextColor3 = Color3.fromRGB(210, 210, 225)
     TargetInfoLabel.TextSize = 11
     TargetInfoLabel.Font = Enum.Font.Gotham
     TargetInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -310,52 +410,82 @@ local okMain, errMain = pcall(function()
 
     -- Статистика
     local StatsFrame = Instance.new("Frame")
-    StatsFrame.Size = UDim2.new(1, -20, 0, 36)
+    StatsFrame.Size = UDim2.new(1, -20, 0, 38)
     StatsFrame.Position = UDim2.new(0, 10, 0, 256)
-    StatsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    StatsFrame.BackgroundColor3 = THEME.card
     StatsFrame.BorderSizePixel = 0
     StatsFrame.Parent = MainFrame
 
-    Instance.new("UICorner", StatsFrame).CornerRadius = UDim.new(0, 6)
+    mkcard(StatsFrame, 8)
 
     local GhostsLabel = Instance.new("TextLabel")
-    GhostsLabel.Size = UDim2.new(0.5, -5, 1, 0)
-    GhostsLabel.Position = UDim2.new(0, 10, 0, 0)
+    GhostsLabel.Size = UDim2.new(0.5, -16, 1, 0)
+    GhostsLabel.Position = UDim2.new(0, 12, 0, 0)
     GhostsLabel.BackgroundTransparency = 1
     GhostsLabel.Text = "Ghosts: 0"
-    GhostsLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+    GhostsLabel.TextColor3 = Color3.fromRGB(160, 175, 255)
     GhostsLabel.TextSize = 11
-    GhostsLabel.Font = Enum.Font.Gotham
+    GhostsLabel.Font = Enum.Font.GothamMedium
     GhostsLabel.TextXAlignment = Enum.TextXAlignment.Left
     GhostsLabel.Parent = StatsFrame
 
     local DistLabel = Instance.new("TextLabel")
-    DistLabel.Size = UDim2.new(0.5, -5, 1, 0)
-    DistLabel.Position = UDim2.new(0.5, 5, 0, 0)
+    DistLabel.Size = UDim2.new(0.5, -16, 1, 0)
+    DistLabel.Position = UDim2.new(0.5, 0, 0, 0)
     DistLabel.BackgroundTransparency = 1
     DistLabel.Text = "Dist: --"
-    DistLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+    DistLabel.TextColor3 = Color3.fromRGB(140, 235, 170)
     DistLabel.TextSize = 11
-    DistLabel.Font = Enum.Font.Gotham
-    DistLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DistLabel.Font = Enum.Font.GothamMedium
+    DistLabel.TextXAlignment = Enum.TextXAlignment.Right
     DistLabel.Parent = StatsFrame
+
+    -- Счётчик пойманных
+    local CaughtCard = Instance.new("Frame")
+    CaughtCard.Size = UDim2.new(1, -20, 0, 30)
+    CaughtCard.Position = UDim2.new(0, 10, 0, 300)
+    CaughtCard.BackgroundColor3 = THEME.card
+    CaughtCard.BorderSizePixel = 0
+    CaughtCard.Parent = MainFrame
+
+    mkcard(CaughtCard, 8)
+
+    local CaughtBar = Instance.new("Frame")
+    CaughtBar.Size = UDim2.new(0, 4, 1, -10)
+    CaughtBar.Position = UDim2.new(0, 5, 0, 5)
+    CaughtBar.BackgroundColor3 = THEME.gold
+    CaughtBar.BorderSizePixel = 0
+    CaughtBar.Parent = CaughtCard
+
+    Instance.new("UICorner", CaughtBar).CornerRadius = UDim.new(1, 0)
+
+    local CaughtLabel = Instance.new("TextLabel")
+    CaughtLabel.Size = UDim2.new(1, -24, 1, 0)
+    CaughtLabel.Position = UDim2.new(0, 18, 0, 0)
+    CaughtLabel.BackgroundTransparency = 1
+    CaughtLabel.Text = "Caught: 0"
+    CaughtLabel.TextColor3 = THEME.gold
+    CaughtLabel.TextSize = 12
+    CaughtLabel.Font = Enum.Font.GothamBold
+    CaughtLabel.TextXAlignment = Enum.TextXAlignment.Left
+    CaughtLabel.Parent = CaughtCard
 
     -- Слайдер скорости
     local SpeedLabel = Instance.new("TextLabel")
     SpeedLabel.Size = UDim2.new(1, -20, 0, 16)
-    SpeedLabel.Position = UDim2.new(0, 10, 0, 300)
+    SpeedLabel.Position = UDim2.new(0, 10, 0, 340)
     SpeedLabel.BackgroundTransparency = 1
     SpeedLabel.Text = "Fly Speed: 50"
-    SpeedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    SpeedLabel.TextColor3 = THEME.muted
     SpeedLabel.TextSize = 11
-    SpeedLabel.Font = Enum.Font.Gotham
+    SpeedLabel.Font = Enum.Font.GothamMedium
     SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
     SpeedLabel.Parent = MainFrame
 
     local SpeedBar = Instance.new("Frame")
-    SpeedBar.Size = UDim2.new(1, -20, 0, 16)
-    SpeedBar.Position = UDim2.new(0, 10, 0, 320)
-    SpeedBar.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    SpeedBar.Size = UDim2.new(1, -20, 0, 10)
+    SpeedBar.Position = UDim2.new(0, 10, 0, 362)
+    SpeedBar.BackgroundColor3 = Color3.fromRGB(38, 40, 58)
     SpeedBar.BorderSizePixel = 0
     SpeedBar.Parent = MainFrame
 
@@ -363,28 +493,42 @@ local okMain, errMain = pcall(function()
 
     local SpeedFill = Instance.new("Frame")
     SpeedFill.Size = UDim2.new(0.2308, 0, 1, 0)
-    SpeedFill.BackgroundColor3 = Color3.fromRGB(120, 60, 220)
+    SpeedFill.BackgroundColor3 = THEME.accent
     SpeedFill.BorderSizePixel = 0
+    SpeedFill.ZIndex = 2
     SpeedFill.Parent = SpeedBar
 
     Instance.new("UICorner", SpeedFill).CornerRadius = UDim.new(1, 0)
+
+    local speedGrad = Instance.new("UIGradient")
+    speedGrad.Color = ColorSequence.new(
+        Color3.fromRGB(124, 92, 255),
+        Color3.fromRGB(72, 200, 255)
+    )
+    speedGrad.Parent = SpeedFill
 
     local SpeedKnob = Instance.new("Frame")
     SpeedKnob.Size = UDim2.new(0, 14, 0, 14)
     SpeedKnob.Position = UDim2.new(0.2308, -7, 0.5, -7)
     SpeedKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     SpeedKnob.BorderSizePixel = 0
+    SpeedKnob.ZIndex = 3
     SpeedKnob.Parent = SpeedBar
 
     Instance.new("UICorner", SpeedKnob).CornerRadius = UDim.new(1, 0)
 
+    local knobStroke = Instance.new("UIStroke")
+    knobStroke.Color = THEME.accent
+    knobStroke.Thickness = 2
+    knobStroke.Parent = SpeedKnob
+
     -- Подсказка
     local HotkeyLabel = Instance.new("TextLabel")
-    HotkeyLabel.Size = UDim2.new(1, -20, 0, 16)
-    HotkeyLabel.Position = UDim2.new(0, 10, 0, 350)
+    HotkeyLabel.Size = UDim2.new(1, -20, 0, 14)
+    HotkeyLabel.Position = UDim2.new(0, 10, 0, 382)
     HotkeyLabel.BackgroundTransparency = 1
-    HotkeyLabel.Text = "F4 Start/Stop | F5 Prev | F6 Next"
-    HotkeyLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+    HotkeyLabel.Text = "F4 Start/Stop  |  F5 Prev  |  F6 Next"
+    HotkeyLabel.TextColor3 = Color3.fromRGB(96, 100, 124)
     HotkeyLabel.TextSize = 9
     HotkeyLabel.Font = Enum.Font.Gotham
     HotkeyLabel.Parent = MainFrame
@@ -392,32 +536,45 @@ local okMain, errMain = pcall(function()
     -- Статус ЛКМ
     local LmbLabel = Instance.new("TextLabel")
     LmbLabel.Size = UDim2.new(1, -20, 0, 16)
-    LmbLabel.Position = UDim2.new(0, 10, 0, 374)
+    LmbLabel.Position = UDim2.new(0, 10, 0, 402)
     LmbLabel.BackgroundTransparency = 1
     LmbLabel.Text = "LMB: off"
-    LmbLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    LmbLabel.TextColor3 = THEME.muted
     LmbLabel.TextSize = 10
     LmbLabel.Font = Enum.Font.Gotham
     LmbLabel.TextXAlignment = Enum.TextXAlignment.Left
     LmbLabel.Parent = MainFrame
 
-    -- Счётчик пойманных
-    local CaughtLabel = Instance.new("TextLabel")
-    CaughtLabel.Size = UDim2.new(1, -20, 0, 16)
-    CaughtLabel.Position = UDim2.new(0, 10, 0, 394)
-    CaughtLabel.BackgroundTransparency = 1
-    CaughtLabel.Text = "Caught: 0"
-    CaughtLabel.TextColor3 = Color3.fromRGB(255, 210, 90)
-    CaughtLabel.TextSize = 11
-    CaughtLabel.Font = Enum.Font.GothamBold
-    CaughtLabel.TextXAlignment = Enum.TextXAlignment.Left
-    CaughtLabel.Parent = MainFrame
+    local caughtCount = savedCaught
 
-    local caughtCount = 0
+    local function save_settings()
+        pcall(function()
+            pcall(makefolder, "GhostClustersFarm")
+            local HttpService = game:GetService("HttpService")
+            writefile(SETTINGS_PATH, HttpService:JSONEncode({
+                flySpeed = flySpeed,
+                autoTarget = autoTarget,
+                caught = caughtCount,
+            }))
+        end)
+    end
 
     local function add_caught()
         caughtCount = caughtCount + 1
         CaughtLabel.Text = "Caught: " .. caughtCount
+        save_settings()
+    end
+
+    -- Применяем сохранённые настройки к GUI
+    do
+        local rel = math.clamp((flySpeed - 20) / 130, 0, 1)
+        SpeedFill.Size = UDim2.new(rel, 0, 1, 0)
+        SpeedKnob.Position = UDim2.new(rel, -7, 0.5, -7)
+        SpeedLabel.Text = "Fly Speed: " .. flySpeed
+        if not autoTarget then
+            AutoButton.Text = "Auto Target: OFF"
+            AutoButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
     end
 
     -- ============================================
@@ -427,8 +584,8 @@ local okMain, errMain = pcall(function()
     local GREEN = Color3.fromRGB(80, 255, 80)
     local RED = Color3.fromRGB(255, 60, 60)
     local GRAY = Color3.fromRGB(150, 150, 150)
-    local GREEN_BTN = Color3.fromRGB(60, 60, 80)
-    local RED_BTN = Color3.fromRGB(160, 40, 40)
+    local GREEN_BTN = Color3.fromRGB(40, 170, 105)
+    local RED_BTN = Color3.fromRGB(195, 60, 75)
 
     local function update_status(text, color)
         StatusLabel.Text = text
@@ -769,6 +926,7 @@ local okMain, errMain = pcall(function()
         autoTarget = false
         AutoButton.Text = "Auto Target: OFF"
         AutoButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        save_settings()
 
         local ghosts = get_alive_ghosts()
         if #ghosts > 0 then
@@ -783,6 +941,7 @@ local okMain, errMain = pcall(function()
         autoTarget = false
         AutoButton.Text = "Auto Target: OFF"
         AutoButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        save_settings()
 
         local ghosts = get_alive_ghosts()
         if #ghosts > 0 then
@@ -811,6 +970,7 @@ local okMain, errMain = pcall(function()
             AutoButton.Text = "Auto Target: OFF"
             AutoButton.TextColor3 = Color3.fromRGB(255, 100, 100)
         end
+        save_settings()
     end)
 
     PrevButton.MouseButton1Click:Connect(prev_target)
@@ -863,11 +1023,14 @@ local okMain, errMain = pcall(function()
 
     track(UserInputService.InputEnded:Connect(function(input)
         if isPointer(input.UserInputType) then
-            draggingSpeed = false
+            if draggingSpeed then
+                draggingSpeed = false
+                save_settings()
+            end
         end
     end))
 
-    print("[Farm] v1.7.2 GUI загружен! F4 - Start/Stop")
+    print("[Farm] v1.7.4 GUI загружен! F4 - Start/Stop")
     if mousePressFn then
         print("[Farm] LMB метод: mouse-press (" .. tostring(pressName) .. ")")
     else
